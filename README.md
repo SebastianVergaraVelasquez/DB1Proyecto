@@ -812,18 +812,23 @@ FROM cliente AS c
 JOIN pago AS p ON c.id = p.id_cliente
 JOIN empleado AS e ON c.id_empleado_rep_ventas = e.id
 JOIN oficina AS o ON e.id_oficina = o.id
-JOIN ciudad AS ciu ON o.id_ciudad = ciu.id;
+JOIN direccion_oficina AS dof ON dof.id_oficina = o.id
+JOIN ciudad as ciu ON ciu.id = dof.id_ciudad;
 
-+---------+------------+---------------------+-----------------------+---------------+
-| nombre  | apellido   | NombreRepresentante | ApellidoRepresentante | CiudadOficina |
-+---------+------------+---------------------+-----------------------+---------------+
-| Maria   | Anders     | Pamela              | Castillo              | Los Angeles   |
-| Helen   | Bennett    | Leslie              | Jennings              | Los Angeles   |
-| Ernst   | Handel     | Gerard              | Hernandez             | Los Angeles   |
-| Roland  | Mendel     | Julie               | Firrelli              | Montreal      |
-| Yang    | Wang       | Larry               | Bott                  | Guadalajara   |
-| Wilhelm | Bergulfsen | Barry               | Jones                 | Guadalajara   |
-+---------+------------+---------------------+-----------------------+---------------+
++-----------+------------+---------------------+-----------------------+---------------+
+| nombre    | apellido   | NombreRepresentante | ApellidoRepresentante | CiudadOficina |
++-----------+------------+---------------------+-----------------------+---------------+
+| Helen     | Bennett    | Leslie              | Jennings              | Los Angeles   |
+| Francisco | Chang      | Steve               | Patterson             | Montreal      |
+| Roland    | Mendel     | Julie               | Firrelli              | Montreal      |
+| Pedro     | Afonso     | Pamela              | Castillo              | Los Angeles   |
+| Maria     | Anders     | Pamela              | Castillo              | Los Angeles   |
+| Ernst     | Handel     | Gerard              | Hernandez             | Los Angeles   |
+| Anna      | Bedecs     | William             | Patterson             | Montreal      |
+| Susan     | Nelson     | Barry               | Jones                 | Guadalajara   |
+| Yang      | Wang       | Larry               | Bott                  | Guadalajara   |
+| Wilhelm   | Bergulfsen | Barry               | Jones                 | Guadalajara   |
++-----------+------------+---------------------+-----------------------+---------------+
 ```
 
 ​    
@@ -831,18 +836,18 @@ JOIN ciudad AS ciu ON o.id_ciudad = ciu.id;
 5. Devuelve el nombre de los clientes que no hayan hecho pagos y el nombre de sus representantes junto con la ciudad de la oficina a la que pertenece el representante.
 
 ```sql
-SELECT c.nombre, c.apellido, e.nombre AS NombreRepresentante, e.apellido1 AS ApellidoRepresentante, ciu.nombre AS ciudadOficina
+SELECT c.nombre, c.apellido, e.nombre AS NombreRepresentante, e.apellido1 AS ApellidoRepresentante, ciu.nombre AS ciudaicina
 FROM cliente AS c
 JOIN empleado AS e ON c.id_empleado_rep_ventas = e.id
 LEFT JOIN pago AS p ON c.id = p.id_cliente
 JOIN oficina AS o ON e.id_oficina = o.id
-JOIN ciudad AS ciu ON o.id_ciudad = ciu.id
+JOIN direccion_oficina AS dof ON dof.id_oficina = o.id
+JOIN ciudad as ciu ON ciu.id = dof.id_ciudad
 WHERE p.id IS NULL;
 
 Empty set
 ```
 
-​    
 
 6. Lista la dirección de las oficinas que tengan clientes en Fuenlabrada.
 
@@ -865,22 +870,27 @@ Empty set
 7. Devuelve el nombre de los clientes y el nombre de sus representantes junto con la ciudad de la oficina a la que pertenece el representante.
 
 ```sql
-SELECT c.nombre, c.apellido, e.nombre AS NombreRepresentante, e.apellido1 AS ApellidoRepresentante, ciu.nombre AS ciudadOficina
+SELECT c.nombre, c.apellido, e.nombre AS NombreRepresentante, e.apellido1 AS ApellidoRepresentante, ciu_oficina.nombre AS ciudaicina
 FROM cliente AS c
 JOIN empleado AS e ON c.id_empleado_rep_ventas = e.id
 JOIN oficina AS o ON e.id_oficina = o.id
-JOIN ciudad AS ciu ON o.id_ciudad = ciu.id;
+JOIN direccion_oficina AS dirOfi ON o.id = dirOfi.id_oficina
+JOIN ciudad AS ciu_oficina ON dirOfi.id_ciudad = ciu_oficina.id;
 
-+---------+------------+---------------------+-----------------------+---------------+
-| nombre  | apellido   | NombreRepresentante | ApellidoRepresentante | ciudadOficina |
-+---------+------------+---------------------+-----------------------+---------------+
-| Ernst   | Handel     | Gerard              | Hernandez             | Los Angeles   |
-| Wilhelm | Bergulfsen | Barry               | Jones                 | Guadalajara   |
-| Roland  | Mendel     | Julie               | Firrelli              | Montreal      |
-| Helen   | Bennett    | Leslie              | Jennings              | Los Angeles   |
-| Maria   | Anders     | Pamela              | Castillo              | Los Angeles   |
-| Yang    | Wang       | Larry               | Bott                  | Guadalajara   |
-+---------+------------+---------------------+-----------------------+---------------+
++-----------+------------+---------------------+-----------------------+-------------+
+| nombre    | apellido   | NombreRepresentante | ApellidoRepresentante | ciudaicina  |
++-----------+------------+---------------------+-----------------------+-------------+
+| Pedro     | Afonso     | Pamela              | Castillo              | Los Angeles |
+| Maria     | Anders     | Pamela              | Castillo              | Los Angeles |
+| Helen     | Bennett    | Leslie              | Jennings              | Los Angeles |
+| Ernst     | Handel     | Gerard              | Hernandez             | Los Angeles |
+| Anna      | Bedecs     | William             | Patterson             | Montreal    |
+| Francisco | Chang      | Steve               | Patterson             | Montreal    |
+| Roland    | Mendel     | Julie               | Firrelli              | Montreal    |
+| Susan     | Nelson     | Barry               | Jones                 | Guadalajara |
+| Yang      | Wang       | Larry               | Bott                  | Guadalajara |
+| Wilhelm   | Bergulfsen | Barry               | Jones                 | Guadalajara |
++-----------+------------+---------------------+-----------------------+-------------+
 ```
 
 ​    
@@ -1150,17 +1160,26 @@ Empty set
 10. Devuelve las oficinas donde no trabajan ninguno de los empleados que hayan sido los representantes de ventas de algún cliente que haya realizado la compra de algún producto de la gama Frutales.
 
 ```sql
-SELECT o.id
+SELECT DISTINCT o.id, o.codigo_postal
 FROM oficina AS o
 LEFT JOIN empleado AS e ON o.id = e.id_oficina
 LEFT JOIN cliente AS c ON e.id = c.id_empleado_rep_ventas
 LEFT JOIN pedido AS p ON c.id = p.id_cliente
 LEFT JOIN detalle_pedido AS dp ON p.id = dp.id_pedido
-LEFT JOIN producto AS prod ON dp.id_producto = prod.id
-LEFT JOIN gama_producto AS g ON prod.id_gama = g.id
-WHERE g.gama = 'Frutales' AND e.id IS NULL;
+LEFT JOIN producto AS pr ON dp.id_producto = pr.id
+LEFT JOIN gama_producto AS gp ON pr.id_gama = gp.id AND gp.gama = 'Frutales'
+WHERE gp.id IS NULL
 
-Empty set
+ +----+---------------+
+ | id | codigo_postal |
+ +----+---------------+
+ | 1  | 90003         |
+ | 2  | H1J 1C3       |
+ | 3  | 44670         |
+ | 4  | 90003         |
+ | 6  | H1J 1C3       |
+ | 7  | 44670         |
+ +----+---------------+
 ```
 
 ​    
